@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: ./boreco
+      dockerfile: Dockerfile.prod
+    command: gunicorn boreco.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/mediafiles
+    expose:
+      - 8000
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=django-insecure-w-a%kvk43^lai2y7&6yf%vxaex)#_x0%#1x)6@0b(%!g0pci!1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - SQL_ENGINE=django.db.backends.postgresql
+      - SQL_DATABASE=boreco_prod
+      - SQL_USER=boreco
+      - SQL_PASSWORD=boreco
+      - SQL_HOST=db
+      - SQL_PORT=5432
+      - DATABASE=postgres
+      - JWT_SECRET_KEY=pacifique-app-contact0000001222PAPPAPAP
+      - DJANGO_SUPERUSER_EMAIL=boreco@gmail.com
+      - DJANGO_SUPERUSER_USERNAME=Admin
+      - DJANGO_SUPERUSER_PASSWORD=borecoadmin
+
+    depends_on:
+      - db
+  react:
+    restart: always
+    command : yarn start
+    container_name: front-react
+    build:
+      context: ./boreco-react/
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    stdin_open: true
+
+    depends_on:
+      - web
+
+
+  db:
+    image: postgres:13.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=boreco
+      - POSTGRES_PASSWORD=boreco
+      - POSTGRES_DB=boreco_prod
+      
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/mediafiles
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+      - react
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: ./boreco
+      dockerfile: boreco/Dockerfile.prod
+    command: gunicorn boreco.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/mediafiles
+    expose:
+      - 8000
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=django-insecure-w-a%kvk43^lai2y7&6yf%vxaex)#_x0%#1x)6@0b(%!g0pci!1
+      - DJANGO_ALLOWED_HOSTS=142.132.165.239
+      - SQL_ENGINE=django.db.backends.postgresql
+      - SQL_DATABASE=boreco_prod
+      - SQL_USER=boreco
+      - SQL_PASSWORD=boreco
+      - SQL_HOST=db
+      - SQL_PORT=5432
+      - DATABASE=postgres
+      - VIRTUAL_HOST=142.132.165.239
+      - VIRTUAL_PORT=8000
+      - LETSENCRYPT_HOST=142.132.165.239
+    depends_on:
+      - db
+  db:
+    image: postgres:13.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=boreco
+      - POSTGRES_PASSWORD=boreco
+      - POSTGRES_DB=boreco_prod
+  react:
+    restart: always
+    command : yarn start
+    container_name: front-react
+    build:
+      context: ./boreco-react/
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    stdin_open: true
+
+    depends_on:
+      - web
+  nginx-proxy:
+    container_name: nginx-proxy
+    build: nginx
+    restart: always
+    ports:
+      - 443:443
+      - 80:80
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/mediafiles
+      - certs:/etc/nginx/certs
+      - html:/usr/share/nginx/html
+      - vhost:/etc/nginx/vhost.d
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    depends_on:
+      - web
+      - react
+  nginx-proxy-letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    env_file:
+      - ./.env.staging.proxy-companion
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - html:/usr/share/nginx/html
+      - vhost:/etc/nginx/vhost.d
+      - acme:/etc/acme.sh
+    depends_on:
+      - nginx-proxy
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  certs:
+  html:
+  vhost:
+  acme:

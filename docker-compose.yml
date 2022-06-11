@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./boreco
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./boreco/:/usr/src/app/
+    ports:
+      - 8000:8000
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-w-a%kvk43^lai2y7&6yf%vxaex)#_x0%#1x)6@0b(%!g0pci!1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+      - SQL_ENGINE=django.db.backends.postgresql
+      - SQL_DATABASE=boreco_dev
+      - SQL_USER=boreco
+      - SQL_PASSWORD=boreco
+      - SQL_HOST=db
+      - SQL_PORT=5432
+      - DATABASE=postgres
+      - JWT_SECRET_KEY=pacifique-app-contact0000001222PAPPAPAP
+      - DJANGO_SUPERUSER_EMAIL=boreco@gmail.com
+      - DJANGO_SUPERUSER_USERNAME=Admin
+      - DJANGO_SUPERUSER_PASSWORD=borecoadmin
+    depends_on:
+      - db
+  db:
+    image: postgres:13.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=boreco
+      - POSTGRES_PASSWORD=boreco
+      - POSTGRES_DB=boreco_dev
+
+volumes:
+  postgres_data:
